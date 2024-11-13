@@ -1,16 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const productModel = require("../models/productModel");
 const searchModel = require("../models/searchModel");
+const Stadium = require('../models/stadiumModel');
 
 // Tìm kiếm sản phẩm
 router.get("/", async (req, res) => {
     const { txt, emailUser } = req.query; // Lấy emailUser từ query
-
-
     try {
         // Tìm sản phẩm theo tên bắt đầu bằng chữ cái (sử dụng regex)
-        const products = await productModel.find({ name: new RegExp(`^${txt}`, 'i') }); // Tìm kiếm bắt đầu bằng txt
+        const stadiums = await Stadium.find({ name: new RegExp(`^${txt}`, 'i') }); // Tìm kiếm bắt đầu bằng txt
 
         // Lưu lịch sử tìm kiếm vào MongoDB
         const searchEntry = new searchModel({
@@ -23,9 +21,9 @@ router.get("/", async (req, res) => {
 
         // Trả về kết quả tìm kiếm
         res.status(200).json({ 
-            total: products.length, 
-            response: products.length > 0 ? products : [], 
-            message: products.length === 0 ? "Không tìm thấy sản phẩm nào!" : "" 
+            total: stadiums.length, 
+            response: stadiums.length > 0 ? stadiums : [], 
+            message: stadiums.length === 0 ? "Không tìm thấy sản phẩm nào!" : "" 
         });
     } catch (error) {
         console.error("Lỗi:", error);

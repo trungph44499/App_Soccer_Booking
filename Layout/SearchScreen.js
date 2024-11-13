@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SearchScreen = ({ navigation }) => {
   const [txtSearch, setTxtSearch] = useState('');
-  const [products, setProducts] = useState([]);
+  const [stadiums, setStadiums] = useState([]);
   const [emailUser, setEmailUser] = useState('');
   const [loading, setLoading] = useState(false);
   const [ListSearch, setListSearch] = useState([]); // Lịch sử tìm kiếm
@@ -34,14 +34,14 @@ const SearchScreen = ({ navigation }) => {
   }, [emailUser]);
 
   useEffect(() => {
-    const searchProducts = async () => {
+    const searchstadiums = async () => {
       if (txtSearch) {
         setLoading(true);
         try {
           const response = await axios.get(`${URL}/searchs/`, {
             params: { txt: txtSearch, emailUser },
           });
-          setProducts(response.data.response || []);
+          setStadiums(response.data.response || []);
         } catch (error) {
           console.error("Lỗi:", error.response ? error.response.data : error.message);
           ToastAndroid.show('Không thể tìm kiếm sản phẩm!', ToastAndroid.SHORT);
@@ -49,12 +49,12 @@ const SearchScreen = ({ navigation }) => {
           setLoading(false);
         }
       } else {
-        setProducts([]); // Clear products when search text is empty
+        setStadiums([]); // Clear stadium when search text is empty
       }
     };
 
     const delayDebounceFn = setTimeout(() => {
-      searchProducts();
+      searchstadiums();
     }, 500); // Thời gian trễ để tránh gửi yêu cầu quá nhiều
 
     return () => clearTimeout(delayDebounceFn);
@@ -76,7 +76,7 @@ const SearchScreen = ({ navigation }) => {
 
   const resetSearch = useCallback(() => {
     setTxtSearch('');
-    setProducts([]);
+    setStadiums([]);
   }, []);
 
   return (
@@ -134,22 +134,22 @@ const SearchScreen = ({ navigation }) => {
               </View>
             ) : (
               <View>
-                {products.length === 0 ? (
+                {stadiums.length === 0 ? (
                   <Text style={styles.noResultText}>Không tìm thấy</Text>
                 ) : (
                   <View style={{ gap: 12 }}>
                     <Text style={styles.resultTitle}>Kết quả tìm kiếm</Text>
                     <FlatList
                       scrollEnabled={false}
-                      data={products}
+                      data={stadiums}
                       keyExtractor={(item) => item._id.toString()}
                       renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => navigation.navigate('DetailScreen', { item })} style={styles.itemDog}>
+                        <TouchableOpacity onPress={() => navigation.navigate('StadiumDetailScreen', { stadiumId: item._id })} style={styles.itemDog}>
                           <Image source={{ uri: item.img }} style={styles.itemImage} />
                           <View style={{ gap: 5 }}>
-                            <Text style={styles.productName}>{item.name}</Text>
-                            <Text style={styles.productPrice}>{item.price} đ</Text>
-                            <Text style={styles.productQuantity}>Còn {item.quantity} sp</Text>
+                            <Text style={styles.stadiumsName}>{item.name}</Text>
+                            <Text style={styles.stadiumsPrice}>{item.address}</Text>
+                            <Text style={styles.stadiumsQuantity}>{item.type}</Text>
                           </View>
                         </TouchableOpacity>
                       )}

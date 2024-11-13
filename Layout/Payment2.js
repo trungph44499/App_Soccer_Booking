@@ -1,83 +1,123 @@
-import {
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  ToastAndroid,
-  TouchableOpacity,
-  View,
-} from "react-native";
 import React, { useState } from "react";
-import UnderLine from "../components/UnderLine";
-import { URL } from "./HomeScreen";
-import { numberUtils, upperCaseFirstItem } from "./utils/stringUtils";
+import { View, ScrollView, Image, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import axios from "axios";
-import { useNavigation } from "@react-navigation/native";
+import { URL } from "../Layout/HomeScreen"; // Thêm URL của bạn
+import { numberUtils } from "./utils/stringUtils";
 
-const Payment2 = ({ route }) => {
-  const { listItem, total, user, soDienThoai, diaChi, ship } = route.params;
-  const navigation = useNavigation();
-  const day = new Date().getDay();
-  const month = new Date().getMonth();
-  const [card, setcard] = useState("");
-  const [cardname, setcardname] = useState("");
-  const [carddate, setcarddate] = useState("");
-  const [cvv, setcvv] = useState("");
-  const [modalTiepTuc, setmodalTiepTuc] = useState(false);
+const Payment2Screen = ({ route, navigation }) => {
+  // Lấy dữ liệu từ màn BookingScreen
+  const { bookingData } = route.params;
+  const [card, setCard] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [cardDate, setCardDate] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function _payment() {
+  // Kiểm tra tính hợp lệ của thông tin thẻ
+  const validateCardInfo = () => {
+    const datePattern = /^(0[1-9]|1[0-2])\/\d{2}$/;  // Định dạng MM/YY
+    if (!card || !cardName || !cardDate || !cvv) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin thẻ.");
+      return false;
+    }
+    if (cvv.length !== 3) {
+      Alert.alert("Lỗi", "CVV phải có 3 chữ số.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCardInput = (text) => {
+    let value = text.replace(/\D/g, ''); // Loại bỏ ký tự không phải số
+    if (value.length > 16) {
+      value = value.slice(0, 16);
+    }
+  
+    // Định dạng theo nhóm 4 số
+    if (value.length > 4) {
+      value = value.replace(/(\d{4})(?=\d)/g, '$1 '); // Thêm khoảng trắng sau mỗi nhóm 4 số
+    }
+  
+    setCard(value); // Cập nhật giá trị số thẻ
+  };
+
+  const handleExpiryDateChange = (text) => {
+    if (text.length === 0) {
+      setCardDate('');
+    } else if (text.length === 2 && !text.includes('/')) {
+      const month = parseInt(text, 10);
+      if (month > 12) {
+        Alert.alert('Lỗi', 'Tháng phải nằm trong khoảng từ 01 đến 12!');
+        setCardDate('');
+      } else {
+        setCardDate(text + '/');
+      }
+    } else if (text.length === 5) {
+      const [month, year] = text.split('/');
+      if (parseInt(year, 10) < 24) {
+        Alert.alert('Lỗi', 'Ngày hết hạn phải là một ngày trong tương lai!');
+      } else {
+        setCardDate(text);
+      }
+    } else if (text.length === 3 && text[2] !== '/') {
+      setCardDate(text.slice(0, 2) + '/' + text[2]);
+    } else {
+      setCardDate(text);
+    }
+  };
+  
+
+  const priceTotal = bookingData.price;
+  
+
+  // Hàm xử lý thanh toán
+  const handlePayment = async () => {
+    if (!validateCardInfo()) return; // Kiểm tra tính hợp lệ của thông tin thẻ
+
+    // Tạo đối tượng dữ liệu thanh toán, kết hợp thông tin từ màn BookingScreen
+    const paymentData = {
+      ...bookingData,  // Dữ liệu booking đã có từ BookingScreen
+      stadiumId: bookingData.stadiumId, // Chỉ giữ trường stadium 
+      name: bookingData.name,
+      soDienThoai: bookingData.soDienThoai,  // Thêm số điện thoại
+      ghiChu: bookingData.ghiChu,  // Thêm ghi chú
+      card, // Thêm thông tin thẻ
+      cardName,
+      cardDate,
+      cvv,
+    };
+    console.log("Payment data: ", paymentData); // Debug để kiểm tra dữ liệu
+
+    setLoading(true); // Hiển thị loading khi đang xử lý thanh toán
+
     try {
-      const {
-        status,
-        data: { response, type },
-      } = await axios.post(`${URL}/pay/add`, {
-        email: user.email,
-        location: diaChi,
-        number: soDienThoai,
-        products: listItem,
-      });
-      if (status === 200) {
-        ToastAndroid.show(response, ToastAndroid.SHORT);
-        if (type) {
-          setmodalTiepTuc(false);
-          const {
-            status: _status,
-            data: { type: _type },
-          } = await axios.post(`${URL}/carts/removeAllFromCart`, {
-            list: listItem,
-            emailUser: user.email,
-          });
-          if (_type) navigation.popToTop();
-        }
+      // Gửi yêu cầu thanh toán
+      const response = await axios.post(`${URL}/bookings/book`, paymentData);
+
+      if (response.status === 200) {
+        Alert.alert("Thành công", "Thanh toán thành công.");
+        navigation.navigate("Home"); // Điều hướng về màn hình chính hoặc xác nhận
+      } else {
+        // Nếu server trả về lỗi, hiển thị thông báo lỗi cụ thể
+        Alert.alert("Lỗi", response.data.message || "Có lỗi xảy ra khi thanh toán.");
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      // Kiểm tra lỗi từ server nếu có thông báo lỗi chi tiết
+      if (error.response && error.response.data && error.response.data.message) {
+        Alert.alert("Lỗi", error.response.data.message);
+      } else {
+        // Nếu không có lỗi cụ thể từ server, hiển thị thông báo chung
+        Alert.alert("Lỗi", "Có lỗi xảy ra khi thanh toán. Vui lòng thử lại sau.");
+      }
+    } finally {
+      setLoading(false); // Ẩn loading khi xong
     }
-  }
+  };
 
-  const OptionModal = () => (
-    <Modal animationType="slide" transparent={true} visible={modalTiepTuc}>
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Xác nhận thanh toán ?</Text>
-          <Pressable style={styles.btnConfirm} onPress={_payment}>
-            <Text style={styles.btnText}>Đồng ý</Text>
-          </Pressable>
-          <Text
-            onPress={() => setmodalTiepTuc(false)}
-            style={styles.cancelText}
-          >
-            Hủy bỏ
-          </Text>
-        </View>
-      </View>
-    </Modal>
-  );
 
   return (
+    <ScrollView>
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -86,274 +126,110 @@ const Payment2 = ({ route }) => {
             source={require("../Image/back.png")}
           />
         </TouchableOpacity>
-        <Text style={styles.headerText}>THANH TOÁN</Text>
-        <View />
+        <Text style={styles.title}>Thanh toán</Text>
       </View>
+      <Text style={{textAlign: "center", fontSize: 18, fontWeight: "bold" }}>Nhập thông tin thẻ</Text>
 
-      <ScrollView style={styles.scrollContainer}>
-        <View style={styles.section}>
-          <UnderLine value={"Nhập thông tin thẻ"} color={"#000000"} />
-          <TextInput
-            placeholder="XXXX XXXX XXXX XXXX"
-            style={styles.input}
-            keyboardType="numeric"
-            onChangeText={(txt) => setcard(txt)}
-          />
-          {card === "" && <Text style={styles.errorText}>Vui lòng nhập số thẻ</Text>}
-          <TextInput
-            placeholder="Tên chủ thẻ"
-            style={styles.input}
-            onChangeText={(txt) => setcardname(txt)}
-          />
-          {cardname === "" && <Text style={styles.errorText}>Vui lòng nhập tên chủ thẻ</Text>}
-          <TextInput
-            placeholder="Ngày hết hạn (MM/YY)"
-            style={styles.input}
-            onChangeText={(txt) => setcarddate(txt)}
-          />
-          {carddate === "" && <Text style={styles.errorText}>Vui lòng nhập ngày hết hạn</Text>}
-          <TextInput
-            placeholder="CVV"
-            style={styles.input}
-            onChangeText={(txt) => setcvv(txt)}
-          />
-          {cvv === "" && <Text style={styles.errorText}>Vui lòng nhập CVV</Text>}
-        </View>
+      <View style={styles.contend}>
+      <Text style={styles.textSty}>Số thẻ:</Text>
+      <TextInput
+        style={styles.input}
+        value={card}
+        onChangeText={handleCardInput}
+        keyboardType="numeric"
+        
+        placeholder="Nhập số thẻ"
+      />
 
-        <View style={styles.section}>
-          <UnderLine value={"Thông tin khách hàng"} color={"#000000"} />
-          <Text style={styles.textGray}>Họ tên: {user.fullname}</Text>
-          <Text style={styles.textGray}>Email: {user.email}</Text>
-          <Text style={styles.textGray}>Địa chỉ: {diaChi}</Text>
-          <Text style={styles.textGray}>Số điện thoại: {soDienThoai}</Text>
-        </View>
+      <Text style={styles.textSty}>Họ tên chủ thẻ:</Text>
+      <TextInput
+        style={styles.input}
+        value={cardName}
+        onChangeText={setCardName}
+        placeholder="Nhập họ tên chủ thẻ"
+      />
 
-        <View style={styles.section}>
-          <UnderLine value={"Phương thức thanh toán"} color={"#000000"} />
-          {ship ? (
-            <UnderLine
-              value={"Giao hàng nhanh - 15.000đ"}
-              color={"#000000"}
-              value2={`Dự kiến giao hàng ${day + 3}-${day + 5}/${month + 1}`}
-            />
-          ) : (
-            <UnderLine
-              value={"Giao hàng COD - 20.000đ"}
-              color={"#000000"}
-              value2={`Dự kiến giao hàng ${day + 2}-${day + 4}/${month + 1}`}
-            />
-          )}
-        </View>
+      <Text style={styles.textSty}>Ngày hết hạn:</Text>
+      <TextInput
+        style={styles.input}
+        value={cardDate}
+        onChangeText={handleExpiryDateChange}
+        placeholder="MM/YY"
+      />
 
-        <View style={styles.section}>
-          <UnderLine value={"Đơn hàng đã chọn"} color={"#000000"} />
-          {listItem &&
-            listItem.map((item) => (
-              <View key={item.id} style={styles.item}>
-                <Image source={{ uri: item.image }} style={styles.image} />
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemCode}>
-                    Mã sản phẩm: {upperCaseFirstItem(item.id.slice(-5))}
-                  </Text>
-                  <Text style={styles.itemName}>Tên sản phẩm: {item.name}</Text>
-                  <Text style={styles.itemPrice}>
-                    Giá tiền: {numberUtils(item.price)}
-                  </Text>
-                  <Text style={styles.itemQuantity}>
-                    Số lượng: {item.quantity}
-                  </Text>
-                </View>
-              </View>
-            ))}
-        </View>
-      </ScrollView>
+      <Text style={styles.textSty}>CVV:</Text>
+      <TextInput
+        style={styles.input}
+        value={cvv}
+        onChangeText={setCvv}
+        secureTextEntry
+        keyboardType="numeric"
+        placeholder="Nhập CVV"
+      />
+      </View>
+      <View style={{flexDirection: 'row', alignItems: "flex-end", paddingHorizontal: 25}}>
+        <Text style={{flex: 1, fontSize: 18, fontWeight: "bold"}}>Tổng tiền: </Text>
+        <Text style={{ fontSize: 18, fontWeight: "bold", color: "red"}}>{numberUtils(priceTotal)}</Text>
 
-      <View style={styles.paymentSection}>
-        <View style={styles.paymentInfo}>
-          <View style={styles.textColumn}>
-            <Text style={styles.textBold}>Tạm tính :</Text>
-            <Text style={styles.textBold}>Phí vận chuyển :</Text>
-            <Text style={styles.textBold}>Tổng tiền :</Text>
-          </View>
-          <View style={styles.amountColumn}>
-            <Text style={styles.textBold}>{numberUtils(total)}</Text>
-            <Text style={styles.textBold}>{ship ? "15.000 đ" : "20.000 đ"}</Text>
-            <Text style={styles.totalAmount}>
-              {numberUtils(total + (ship ? 15000 : 20000))}
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          onPress={() => {
-            card && cardname && carddate && cvv && setmodalTiepTuc(true);
-          }}
-          style={[
-            styles.payButton,
-            {
-              backgroundColor:
-                card && cardname && carddate && cvv ? "#FF6B6B" : "#E0E0E0",
-            },
-          ]}
-        >
-          <Text style={styles.payButtonText}>Thanh toán</Text>
+      </View>
+        <View style={styles.buttonContainer}>
+        <TouchableOpacity onPress={handlePayment} style={styles.button}>
+          <Text style={styles.buttonText}>Thanh toán</Text>
         </TouchableOpacity>
-      </View>
-
-      <OptionModal />
+        </View>
     </View>
+    </ScrollView>
   );
 };
-
-export default Payment2;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
-    padding: 20,
+    backgroundColor: "#FFFFFF",
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  headerText: {
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "black",
+  title: {
+    flex: 1, 
+    textAlign: "center", 
+    fontSize: 20, 
+    fontWeight: "bold" 
   },
-  textBold: {
-    fontSize: 15,
-    fontWeight: "500",
+  textSty:{
+    fontSize: 16, 
+    fontWeight: "bold" ,
+    marginBottom: 10,
   },
-  textGray: {
-    fontSize: 16,
-    color: "#555",
-    marginBottom: 5,
+  contend:{
+    padding: 20
   },
   input: {
-    width: "100%",
-    height: 45,
-    borderBottomWidth: 2,
-    borderBottomColor: "#D3D3D3", // Chỉnh sửa màu gạch ngang thành đen
-    padding: 10,
-    marginBottom: 10,
+    height: 60,
+    backgroundColor: "#F5F5F5",
+    borderColor: '#ccc',
+    borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: "#FFF",
+    paddingHorizontal: 10,
+    marginBottom: 20,
   },
-  errorText: {
-    color: "red",
-    fontSize: 13,
-    marginLeft:10
+  buttonContainer:{
+    padding: 20
   },
-  scrollContainer: {
-    marginBottom: 30,
-  },
-  section: {
-    marginVertical: 15,
-  },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: "#FFF",
-    borderRadius: 12,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-  },
-  itemInfo: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  itemCode: {
-    fontWeight: "bold",
-    color: "#FF6B6B",
-  },
-  itemName: {
-    color: "#555",
-  },
-  itemPrice: {
-    color: "#FF6B6B",
-  },
-  itemQuantity: {
-    color: "#555",
-  },
-  paymentSection: {
-    paddingVertical: 1,
-  },
-  paymentInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  textColumn: {
-    flex: 1,
-  },
-  amountColumn: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  totalAmount: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#FF6B6B",
-  },
-  payButton: {
+  button: {
+    backgroundColor: "#825640",
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
-    marginTop: 20,
   },
-  payButtonText: {
+  buttonText: {
     color: "#FFF",
-    fontWeight: "bold",
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: "90%",
-    padding: 20,
-    backgroundColor: "white",
-    borderRadius: 15,
-    alignItems: "center",
-    elevation: 5,
-    position:'absolute',
-    bottom: 20,
-    
-  },
-  modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#FF6B6B",
-  },
-  btnConfirm: {
-    padding: 14,
-    backgroundColor: "#FF6B6B",
-    borderRadius: 10,
-    marginTop: 20,
-    width: "100%",
-    alignItems: "center",
-  },
-  btnText: {
-    color: "#FFF",
-    fontWeight: "bold",
-  },
-  cancelText: {
-    marginTop: 10,
-    color: "gray",
+    fontWeight: 'bold'
   },
 });
+
+export default Payment2Screen;

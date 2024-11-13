@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import axios from "axios";
 import React, { useEffect, useState, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import SliderShow from "./components/SliderShow";
 import ip from "./config/ipconfig.json";
 
@@ -20,19 +22,50 @@ export const URL = `http://${ip.ip}`;
 const { width: screenWidth } = Dimensions.get("window");
 
 const HomeScreen = ({ navigation }) => {
+  const [user, setUser] = useState({});
 
+  const retrieveData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem("@UserLogin");
+
+      const {
+        status,
+        data: { response },
+      } = await axios.post(`${URL}/users/getUser`, {
+        email: userData,
+      });
+      if (status == 200) {
+        setUser(...response);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      retrieveData();
+    }, [])
+  );
+  // useEffect(() => {
+  //   if (user && user.fullname) {
+  //     console.log("User fullname: ", user.fullname); // Đảm bảo rằng fullname đã có sau khi state được cập nhật
+  //   } else {
+  //     console.log("Chưa có fullname trong user", user);
+  //   }
+  // }, [user]); // Hook này sẽ chạy khi state `user` thay đổi
+  
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <StatusBar hidden />
         <View style={{ width: screenWidth, height: 320 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ marginTop: 30, }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 30 }}>
+            <View style={{flex: 3}}>
               <Text
                 style={{
                   color: "#F79515",
                   fontSize: 23,
-
                   fontWeight: "400",
                 }}
               >
@@ -46,35 +79,36 @@ const HomeScreen = ({ navigation }) => {
                   marginBottom: 10,
                 }}
               >
-                Đặt lịch mọi nơi !!
+                Đặt lịch ở mọi nơi !!
               </Text>
             </View>
-            {/* <Image
+            <View style={{flex: 1}}>
+            <Image
               source={
                 user.avatar
                   ? { uri: user.avatar }
                   : require("../Image/pesonal.png")
               }
-              style={{ width: 40, height: 40, borderRadius: 20 }}
-            /> */}
+              style={{ width: 60, height: 60, borderRadius: 20 }}
+            />
+            </View>
           </View>
           <SliderShow />
-
-          {/* <TouchableOpacity
+          <TouchableOpacity
             style={styles.newSP}
             onPress={() => navigation.navigate("")}
           >
             <Text
               style={{
                 fontSize: 17,
-                color: "black",
+                color: "#2223ab",
                 fontWeight: "bold",
                 textDecorationLine: "underline",
               }}
             >
-              Xem quy định ➭
+              Xem khuyễn mãi ➭
             </Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
 
         <View style={{ marginTop: 20, alignItems: 'center' }}>
@@ -100,10 +134,8 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
           <Text style={{ color: '#2223ab', fontSize: 16, fontWeight: 'bold', marginTop: 20, textAlign: 'center' }}>Các Bạn Là Một Phần Phát Triển Của Chúng Tôi</Text>
-          <Text style={{ color: '#2223ab', fontSize: 16, fontWeight: 'bold', marginTop: 20, textAlign: 'center' }}>Chúng tôi cung cấp những gì chúng tôi hứa. Hãy xem khách hàng đang bày tỏ gì về chúng tôi</Text>
+          <Text style={{ color: '#2223ab', fontSize: 16, fontWeight: 'bold', marginTop: 20, textAlign: 'center', marginBottom: 40 }}>Chúng tôi cung cấp những gì chúng tôi hứa. Hãy xem khách hàng đang bày tỏ gì về chúng tôi</Text>
         </View>
-
-
       </ScrollView>
     </SafeAreaView>
   );

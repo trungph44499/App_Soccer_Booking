@@ -13,7 +13,6 @@ var notificationRouter = require("./routes/notification");
 var stadiumRouter = require("./routes/stadium");
 var bookingRouter = require("./routes/booking");
 
-
 var app = express();
 app.use(logger("dev"));
 app.use(cors());
@@ -28,7 +27,7 @@ app.use("/admin", adminRouter);
 app.use("/searchs", searchRouter);
 app.use("/pay", paymentRouter);
 app.use("/notification", notificationRouter);
-app.use('/stadiums', stadiumRouter);
-app.use('/bookings', bookingRouter);
+app.use("/stadiums", stadiumRouter);
+app.use("/bookings", bookingRouter);
 
 module.exports = app;

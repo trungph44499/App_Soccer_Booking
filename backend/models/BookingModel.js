@@ -6,10 +6,13 @@ const Schema = mongoose.Schema;
 const bookingSchema = new Schema(
   {
     userEmail: { type: String, required: true },  // Email người dùng
-    stadium: { type: mongoose.Schema.Types.ObjectId, ref: 'Stadiums', required: true },  // Liên kết đến sân
+    stadiumId: { type: mongoose.Schema.Types.ObjectId, ref: 'Stadiums', required: true },  // Liên kết đến sân
     date: { type: String, required: true },       // Ngày đặt sân (dưới dạng chuỗi "YYYY-MM-DD")
     timeSlot: { type: String, required: true },   // Ca chọn (sáng, chiều, tối)
-    price: { type: Number, required: true },      // Giá của ca (mới thêm vào)
+    price: { type: Number, required: true },   // Giá của ca (mới thêm vào)
+    name: { type: String, required: true },     
+    soDienThoai: { type: Number, required: true },  
+    ghiChu: { type: String, required: true },     
     status: { type: String, default: 'pending' }, // Trạng thái đặt sân (pending, confirmed, cancelled)
   },
   { timestamps: true } // Tạo trường createdAt và updatedAt tự động

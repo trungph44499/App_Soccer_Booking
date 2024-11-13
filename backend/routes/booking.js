@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const BookingModel = require('../models/bookingModel');
+const BookingModel = require('../models/BookingModel');
 
 // Tạo mới một booking (POST)
 router.post('/book', async (req, res) => {
-  const { userEmail, stadium, date, timeSlot, price } = req.body;
+  const { userEmail, stadiumId, date, timeSlot, price, name, soDienThoai, ghiChu } = req.body;
 
   // Kiểm tra xem thông tin có hợp lệ không
-  if (!userEmail || !stadium || !date || !timeSlot || !price) {
+  if (!userEmail || !stadiumId || !date || !timeSlot || !price || !name || !soDienThoai || !ghiChu) {
+    console.log("Dữ liệu thiếu: ", req.body); // Log thêm dữ liệu gửi lên
     return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin.' });
   }
 
@@ -15,28 +16,31 @@ router.post('/book', async (req, res) => {
     // Tạo mới booking với stadium (stadium là ObjectId) và giá tiền
     const newBooking = new BookingModel({
       userEmail,
-      stadium,  // Sử dụng stadiumId
+      stadiumId,  // stadium sẽ là ObjectId
       date,
       timeSlot,
       price,  // Thêm giá của booking
+      name,
+      soDienThoai,
+      ghiChu,
       status: 'pending', // Mặc định là pending
     });
 
     const savedBooking = await newBooking.save();
-    res.status(201).json(savedBooking);
+    res.status(200).json(savedBooking);
   } catch (err) {
-    console.error(err);
+    console.error("Lỗi khi lưu booking: ", err);  // Log lỗi khi lưu
     res.status(500).json({ message: 'Đặt sân thất bại. Vui lòng thử lại.' });
   }
 });
 
 // Kiểm tra booking (POST)
 router.post('/checkBooking', async (req, res) => {
-  const { stadium, date, timeSlot } = req.body;  // Kiểm tra theo stadiumId
+  const { stadiumId, date, timeSlot } = req.body;  // Kiểm tra theo stadiumId
 
   try {
     const booking = await BookingModel.findOne({
-      stadium: stadium,   // Kiểm tra theo stadiumId
+      stadiumId: stadiumId,   // Kiểm tra theo stadiumId
       date: date,
       timeSlot: timeSlot
     });
@@ -61,7 +65,7 @@ router.get('/my-bookings', async (req, res) => {
   }
 
   try {
-    const bookings = await BookingModel.find({ userEmail }).populate('stadium');  // Populate stadium thông tin sân
+    const bookings = await BookingModel.find({ userEmail }).populate('stadiums');  // Populate stadium thông tin sân
     res.status(200).json(bookings);
   } catch (err) {
     console.error(err);

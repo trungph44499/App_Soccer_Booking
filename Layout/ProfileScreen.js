@@ -7,7 +7,6 @@ import {
   ToastAndroid,
   View,
   TouchableOpacity,
-  Animated,
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,8 +17,6 @@ import { URL } from "./HomeScreen";
 
 const ProfileScreen = ({ navigation, route }) => {
   const [user, setUser] = useState({});
-
-  const [scale] = useState(new Animated.Value(1));
 
   const retrieveData = async () => {
     try {
@@ -164,7 +161,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: 20,
     paddingRight: 20,
-    paddingBottom: 30,
+    paddingBottom: 200,
     gap: 16,
     backgroundColor: "#FFFFFF"
   },

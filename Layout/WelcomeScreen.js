@@ -18,7 +18,7 @@ const WelcomeScreen = () => {
   return (
     <View style={styles.background}>
       <Animated.View style={{ opacity: fadeAnim }}>
-        <Image style={styles.img} source={require('../Image/logo_01.png')} />
+        <Image style={styles.img} source={require('../Image/logo_02.png')} />
       </Animated.View>
       <Text style={styles.welcomeText}>Chào mừng đến với Soccer Booking!</Text>
       <ActivityIndicator color={'#A05E56'} size="large" />
@@ -30,7 +30,7 @@ export default WelcomeScreen;
 
 const styles = StyleSheet.create({
   background: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     height: '100%',
     justifyContent: 'center',
